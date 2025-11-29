@@ -1,87 +1,94 @@
--- Delta注入器专用：移动端飞行控制（按钮开关，下方按钮控制飞行）
-local plr = game.Players.LocalPlayer
-local char = plr.Character or plr.CharacterAdded:Wait()
-local uis = game:GetService("UserInputService")
-local speed = 6
-local flying = false
-local bv, bg
+import React, { useState } from 'react';
 
--- 创建飞行按钮GUI
-local screengui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
-screengui.Name = "FlyGui"
-local btn = Instance.new("TextButton", screengui)
-btn.Size = UDim2.new(0,120,0,50)
-btn.Position = UDim2.new(1,-130,1,-60)
-btn.AnchorPoint = Vector2.new(0,0)
-btn.Text = "飞行"
-btn.BackgroundColor3 = Color3.new(0.2,0.6,1)
-btn.TextColor3 = Color3.new(1,1,1)
-btn.Font = Enum.Font.SourceSansBold
-btn.TextSize = 26
+const CLIMB_SCRIPT = `-- 可通过 delta 注入器动态注入的人物爬墙脚本
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:FindFirstChildOfClass("Humanoid")
 
--- 飞行实现
-function Fly()
-    flying = true
-    btn.Text = "停止飞行"
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    bv = Instance.new("BodyVelocity", root)
-    bv.MaxForce = Vector3.new(9e9,9e9,9e9)
-    bg = Instance.new("BodyGyro", root)
-    bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
-    bg.P = 9000
+local climbing = true
 
-    local jumpConn
-    jumpConn = char:FindFirstChildOfClass("Humanoid").Jumping:Connect(function(active)
-        if active and flying then
-            bv.Velocity = bv.Velocity + Vector3.new(0,speed*2,0)
-        end
-    end)
-
-    while flying and root and bv and bg do
-        game:GetService('RunService').RenderStepped:wait()
-        -- 使用摇杆控制方向
-        local move = Vector3.new(0,0,0)
-        local cam = workspace.CurrentCamera
-        local dir = uis:GetDeviceRotation() or cam.CFrame.LookVector
-
-        -- 检查虚拟摇杆方向
-        if uis.TouchEnabled then
-            local mv = plr.PlayerModule
-            local controls = mv and mv:GetControls() -- 使用Roblox默认PlayerModule的摇杆（有些注入器下不可用）
-            if controls and controls.MoveDirection then
-                move = move + cam.CFrame.RightVector * controls.MoveDirection.X
-                move = move + cam.CFrame.LookVector * controls.MoveDirection.Z
-            end
-        end
-
-        -- 如果没有PlayerModule就用Humanoid的MoveDirection
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid and humanoid.MoveDirection.Magnitude > 0 then
-            move = humanoid.MoveDirection
-        end
-
-        bv.Velocity = move * speed
-        bg.CFrame = cam.CFrame
+-- 持续将 Humanoid 的状态置为“Climbing”
+local function forceClimb()
+    if humanoid and climbing then
+        humanoid:ChangeState(Enum.HumanoidStateType.Climbing)
     end
-
-    if bv then bv:Destroy() end
-    if bg then bg:Destroy() end
-    btn.Text = "飞行"
 end
 
-function StopFly()
-    flying = false
+-- 每 0.1 秒强制保持 Climbing 状态
+local heartbeat = game:GetService("RunService").Heartbeat:Connect(function()
+    forceClimb()
+end)
+
+-- 可选：提供移除/停止机制，便于 delta 注入器管理
+local function stopClimbing()
+    climbing = false
+    if heartbeat then heartbeat:Disconnect() end
 end
 
-btn.MouseButton1Click:Connect(function()
-    if not flying then Fly() else StopFly() end
-end)
+-- 导出/绑定 stopClimbing 方便外部调用
+_G.StopClimbingDelta = stopClimbing`;
 
--- 角色重生时清理GUI和飞行
-plr.CharacterAdded:Connect(function()
-    StopFly()
-    if screengui then screengui:Destroy() end
-end)
+const DeltaPanel = ({ title = "Delta 注入 UI 面板", onClose }) => {
+  const [copied, setCopied] = useState(false);
 
-print("移动端飞行按钮已加载，点按下方飞行按钮以开关飞行。")
+  const handleCopy = () => {
+    navigator.clipboard.writeText(CLIMB_SCRIPT);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+
+  // 示例注入函数，可替换为实际 delta 注入器 API
+  const handleInject = () => {
+    alert('请将脚本粘贴到你的 delta 注入器环境并执行。\n（这里是交互示例，可以根据实际 delta 注入器接口定制）');
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      right: '20px',
+      top: '20px',
+      width: '400px',
+      background: '#fff',
+      border: '1px solid #666',
+      borderRadius: '8px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      zIndex: 9999,
+      padding: '20px'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '12px'
+      }}>
+        <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{title}</span>
+        <button style={{ cursor: 'pointer' }} onClick={onClose}>关闭</button>
+      </div>
+      <div style={{ marginBottom: '12px' }}>
+        <div>将以下 Lua 脚本通过 delta 注入器执行后，人物会持续保持爬墙（Climb）状态：</div>
+      </div>
+      <pre style={{
+        background: '#f7f7f7',
+        padding: '12px',
+        borderRadius: '6px',
+        fontSize: '14px',
+        lineHeight: '1.45',
+        maxHeight: '250px',
+        overflow: 'auto',
+        marginBottom: '10px'
+      }}>
+        {CLIMB_SCRIPT}
+      </pre>
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button onClick={handleCopy}>
+          {copied ? '已复制!' : '复制脚本'}
+        </button>
+        <button onClick={handleInject}>
+          一键注入（示例按钮，无实际注入）
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default DeltaPanel;
