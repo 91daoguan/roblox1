@@ -1,9 +1,3 @@
-if game.PlaceId ~= 4342047058 then
-    warn("⚠ 本辅助仅适用于指定游戏(4342047058)")
-    return
-end
-
--- 变量与引用
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local char = player.Character or player.CharacterAdded:Wait()
