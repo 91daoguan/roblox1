@@ -246,7 +246,7 @@ SettingsBox = Tabs.UISettings:AddLeftGroupbox('UI','wrench')
 
 Tabs.Homepage:UpdateWarningBox({
 Title = "更新日志：",
-Text = "//Doors//\n<font color=\"rgb(73,230,133)\">修复防 Jamming\n修复UI样式LinoriaLib\n改进假死</font>",
+Text = "//Doors//\n<font color=\"rgb(73,230,133)\">开源Jamming\nLinoriaLib\n开源</font>",
 IsNormal = true,
 Visible = true,
 LockSize = true,
@@ -278,28 +278,31 @@ end
 end
 })
 
-Info:AddLabel("[<font color=\"rgb(73,230,133)\">麤欻飍𠯶貤鬯𥫗𠔉�</font>] LEAKER")
+Info:AddLabel("[<font color=\"rgb(73,230,133)\">已开源</font>] LEAKER")
 
-Movement:AddToggle('SpeedBoost', {
-    Text = "移动速度",
-    Default = false,
-Callback = function(Value)
-if Character and Character.Humanoid then
-if Value then
-Character.Humanoid.WalkSpeed = Speed
-else
-Character.Humanoid.WalkSpeed = 16
-end
-end
-end
-})
+local speedLoopConn = nil
+Toggles.SpeedBoost:OnChanged(function(Value)
+    if Value then
+        if speedLoopConn then speedLoopConn:Disconnect() end
+        speedLoopConn = RunService.RenderStepped:Connect(function()
+            if Character and Character:FindFirstChildOfClass("Humanoid") then
+                Character.Humanoid.WalkSpeed = Speed
+            end
+        end)
+    else
+        if speedLoopConn then speedLoopConn:Disconnect() end
+        if Character and Character:FindFirstChildOfClass("Humanoid") then
+            Character.Humanoid.WalkSpeed = 16
+        end
+    end
+end)
 
 Speed = 15
 Movement:AddSlider("SpeedBoostSlider", {
     Text = "移动速度值",
     Default = 15,
     Min = 15,
-    Max = 21,
+    Max = 45,
     Rounding = 1,
 Callback = function(Value)
 Speed = Value
@@ -430,11 +433,71 @@ end
 end))
 
 
+local driftConnection -- 用于后续断开惯性漂移的周期循环
+local velocity = Vector3.zero               -- 当前惯性速度
+local accel = 0.8                           -- 加速度(响应快慢，越大响应越快)
+local friction = 0.87                       -- 摩擦系数(小数，越接近1漂越远)
+local lastInput = Vector3.zero              -- 最后一次的输入方向
+
+function EnableDriftMovement()
+    if driftConnection then
+        driftConnection:Disconnect()
+    end
+    driftConnection = RunService.RenderStepped:Connect(function(dt)
+        local inputVec = Vector3.zero
+        -- 检测移动输入方向
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            inputVec = inputVec + workspace.CurrentCamera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            inputVec = inputVec - workspace.CurrentCamera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            inputVec = inputVec - workspace.CurrentCamera.CFrame.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            inputVec = inputVec + workspace.CurrentCamera.CFrame.RightVector
+        end
+        inputVec = Vector3.new(inputVec.X, 0, inputVec.Z)
+        if inputVec.Magnitude > 0 then
+            inputVec = inputVec.Unit * (Speed or 16)
+            lastInput = inputVec
+        end
+        
+        -- 施加加速度和摩擦
+        velocity = velocity * friction
+        if inputVec.Magnitude > 0 then
+            -- 游戏手感更自然的惯性合成
+            velocity = velocity:Lerp(inputVec, accel * dt)
+        end
+
+        -- 应用速度到人物
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local hrp = char.HumanoidRootPart
+            hrp.Velocity = Vector3.new(velocity.X, hrp.Velocity.Y, velocity.Z)
+        end
+    end)
+end
+
+function DisableDriftMovement()
+    if driftConnection then
+        driftConnection:Disconnect()
+        driftConnection = nil
+    end
+end
+
 Movement:AddToggle('Noacceleration', {
     Text = "无加速度",
-    Default = false
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            EnableDriftMovement()
+        else
+            DisableDriftMovement()
+        end
+    end
 })
-Movement:AddDivider()
 
 Movement:AddToggle('InstantPrompt', {
     Text = "快速互动",
@@ -486,17 +549,24 @@ Movement:AddToggle('Noclip', {
     SyncToggleState = true,
     ChangedCallback = function(New) end
 })
+local nocliping = false
+local function doNoclip()
+    for _, v in ipairs(LocalPlayer.Character:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = false
+        end
+    end
+end
+
 Toggles.Noclip:OnChanged(function(Value)
-if not Value then 
-LocalPlayer.Character.Collision.CanCollide = true 
-if Character.Collision:FindFirstChild("CollisionCrouch") then
-LocalPlayer.Character.Collision.CollisionCrouch.CanCollide = true
-end
-LocalPlayer.Character.HumanoidRootPart.CanCollide = true
-if LocalPlayer.Character:FindFirstChild("CollisionPart") then
-LocalPlayer.Character:FindFirstChild("CollisionPart").CanCollide = true
-end
-end
+    nocliping = Value
+    if nocliping then
+        RunService.Stepped:Connect(function()
+            if nocliping and LocalPlayer.Character then
+                doNoclip()
+            end
+        end)
+    end
 end)
 
 Fly = Fly or {}
