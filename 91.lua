@@ -1,3 +1,4 @@
+print("https链接索取成功")
 Players = game:GetService("Players")
 LocalPlayer = Players.LocalPlayer
 Lighting = game:GetService("Lighting")
