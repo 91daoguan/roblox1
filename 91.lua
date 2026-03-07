@@ -1,3 +1,4 @@
+
 print("https链接索取成功")
 Players = game:GetService("Players")
 LocalPlayer = Players.LocalPlayer
@@ -281,23 +282,28 @@ end
 Info:AddLabel("[<font color=\"rgb(73,230,133)\">已开源</font>] LEAKER")
 
 local speedLoopConn = nil
+local defaultWalkSpeed = 16
 Toggles.SpeedBoost:OnChanged(function(Value)
+    if speedLoopConn then
+        speedLoopConn:Disconnect()
+        speedLoopConn = nil
+    end
+    local humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
     if Value then
-        if speedLoopConn then speedLoopConn:Disconnect() end
         speedLoopConn = RunService.RenderStepped:Connect(function()
-            if Character and Character:FindFirstChildOfClass("Humanoid") then
-                Character.Humanoid.WalkSpeed = Speed
+            local currentHumanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+            if currentHumanoid then
+                currentHumanoid.WalkSpeed = Speed
             end
         end)
     else
-        if speedLoopConn then speedLoopConn:Disconnect() end
-        if Character and Character:FindFirstChildOfClass("Humanoid") then
-            Character.Humanoid.WalkSpeed = 16
-        end
+        humanoid.WalkSpeed = defaultWalkSpeed
     end
 end)
+local Speed = 15
 
-Speed = 15
 Movement:AddSlider("SpeedBoostSlider", {
     Text = "移动速度值",
     Default = 15,
