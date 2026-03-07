@@ -302,7 +302,7 @@ Movement:AddSlider("SpeedBoostSlider", {
     Text = "移动速度值",
     Default = 15,
     Min = 15,
-    Max = 45,
+    Max = 21,
     Rounding = 1,
 Callback = function(Value)
 Speed = Value
