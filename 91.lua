@@ -3,7 +3,7 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 Players = game:GetService("Players")
 LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 Lighting = game:GetService("Lighting")
-local success, vUser = pcall(game.GetService, game, "VirtualUser"); VirtualUser = success and vUser or nil
+local s, r = pcall(function() return game:GetService("VirtualUser") end) VirtualUser = s and r or nil
 RunService = game:GetService("RunService")
 PathfindingService = game:GetService("PathfindingService")
 ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +12,7 @@ UserInputService = game:GetService("UserInputService")
 Workspace = game:GetService("Workspace")
 SoundService = game:GetService("SoundService")
 Debris = game:GetService("Debris")
-if LocalPlayer and LocalPlayer:GetAttribute("SapphireLoaded") then 
+if LocalPlayer and LocalPlayer:GetAttribute("SapphireLoaded") then
 print("[防重复加载] 脚本已结束")
 return end
 LocalPlayer:SetAttribute("SapphireLoaded", true)
