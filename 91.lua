@@ -30,7 +30,34 @@ Modifiers = ReplicatedStorage:WaitForChild("LiveModifiers")
 Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 LocalPlayer.CharacterAdded:Connect(function(char)
 Character = char
+if Toggles and Toggles.SpeedBoost and Toggles.SpeedBoost.Value then
+    local humanoid = char:WaitForChildOfClass("Humanoid")
+    humanoid.WalkSpeed = Speed
+    local speedConn = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+        if Toggles.SpeedBoost.Value and humanoid.WalkSpeed ~= Speed then
+            humanoid.WalkSpeed = Speed
+        end
+    end)
+    char:SetAttribute("SpeedBoostConn", speedConn)
+end
+if Toggles and Toggles.Noclip and Toggles.Noclip.Value then
+    task.wait(0.1)
+    local collision = char:FindFirstChild("Collision")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local collisionPart = char:FindFirstChild("CollisionPart")
+    if collision then
+        collision.CanCollide = false
+        local crouch = collision:FindFirstChild("CollisionCrouch")
+        if crouch then crouch.CanCollide = false end
+    end
+    if root then root.CanCollide = false end
+    if collisionPart then collisionPart.CanCollide = false end
+end
+if Toggles and Toggles.AntiHear and Toggles.AntiHear.Value and RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
+    RemoteFolder.Crouch:FireServer(true)
+end
 end)
+
 function Sound()
 sound = Instance.new("Sound",SoundService)
 sound.Volume = 2.5
@@ -254,12 +281,22 @@ local humanoid = char:FindFirstChildOfClass("Humanoid")
 if humanoid then
 if Value then
 humanoid.WalkSpeed = Speed
+local speedConn = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+    if Toggles.SpeedBoost.Value and humanoid.WalkSpeed ~= Speed then
+        humanoid.WalkSpeed = Speed
+    end
+end)
+char:SetAttribute("SpeedBoostConn", speedConn)
 else
 humanoid.WalkSpeed = 16
+local oldConn = char:GetAttribute("SpeedBoostConn")
+if oldConn then oldConn:Disconnect() end
+char:SetAttribute("SpeedBoostConn", nil)
 end
 end
 end
 })
+
 Speed = 15
 Movement:AddSlider("SpeedBoostSlider", {
     Text = "移动速度值",
@@ -1283,8 +1320,14 @@ Anti:AddToggle('AntiHear',{
      Default = false
 })
 Toggles.AntiHear:OnChanged(function(Value)
-if not Value then
+if Value then
+if RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
+RemoteFolder.Crouch:FireServer(true)
+end
+else
+if RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
 RemoteFolder.Crouch:FireServer(false)
+end
 end
 end)
 
@@ -5835,7 +5878,7 @@ end
 end
 end
 
-if Toggles.AntiHear.Value and ReplicatedStorage:FindFirstChild("RemotesFolder") then
+if Toggles.AntiHear.Value and RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
 RemoteFolder.Crouch:FireServer(true)
 end
 
