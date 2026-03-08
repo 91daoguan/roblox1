@@ -11,21 +11,15 @@ UserInputService = game:GetService("UserInputService")
 Workspace = game:GetService("Workspace")
 SoundService = game:GetService("SoundService")
 Debris = game:GetService("Debris")
-
 if LocalPlayer:GetAttribute("SapphireLoaded") then 
 print("[防重复加载] 脚本已结束")
 return
 end
-
 LocalPlayer:SetAttribute("SapphireLoaded", true)
-
 notifysound = 4590657391
-
 PlayingSound = true
 promptReachMultiplier = 2.0
-
 Floor = ReplicatedStorage.GameData.Floor
-
 RemoteFolder = ReplicatedStorage:FindFirstChild("RemotesFolder")
 MainGame = LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game
 RequiredMainGame = require(LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game)
@@ -33,29 +27,18 @@ RemoteListener = MainGame.RemoteListener
 Modules = RemoteListener.Modules
 ClientModules = game:GetService("ReplicatedStorage"):FindFirstChild("ModulesClient") or game:GetService("ReplicatedStorage"):FindFirstChild("ClientModules") 
 Modifiers = ReplicatedStorage:WaitForChild("LiveModifiers")
-
 Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-
 LocalPlayer.CharacterAdded:Connect(function(char)
 Character = char
-
 end)
-
 function Sound()
-
 sound = Instance.new("Sound",SoundService)
-
 sound.Volume = 2.5
-
 sound.SoundId = "rbxassetid://" .. notifysound 
-
 sound.Playing = PlayingSound and true or false
-
 Debris:AddItem(sound,2)
-
 end
 Sound()
-
 Character = LocalPlayer.Character
 if Character.Collision:FindFirstChild("CollisionCrouch") then
 Character.Collision.CollisionCrouch.Size = Vector3.new(0.5, 0.001, 3)
@@ -78,7 +61,6 @@ if CollisionClone2:FindFirstChild("CollisionCrouch") then
 CollisionClone2.CollisionCrouch:Destroy()
 end
 end
-
 Achievement = (function()
 local Players = game:GetService("Players")
 local TS = game:GetService("TweenService")
@@ -119,10 +101,8 @@ frame:Destroy()
 end)
 end
 end)()
-
 Pathnode = Instance.new("Folder",workspace)
 Pathnode.Name = "Path Node"
-
 local repo
 if UIStyle == "LinoriaLib" then
 repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
@@ -131,35 +111,28 @@ repo = 'https://raw.githubusercontent.com/mstudio45/Obsidian/main/'
 end
 Executor = identifyexecutor() or getexecutorname() or "Unknown"
 Library = loadstring(game:HttpGet(repo..'Library.lua'))()
-
 ThemeManager = loadstring(game:HttpGet(repo..'addons/ThemeManager.lua'))()
 SaveManager  = loadstring(game:HttpGet(repo..'addons/SaveManager.lua'))()
 Options = Library.Options
 Toggles = Library.Toggles
 ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
-
 ESPLibrary.GlobalConfig.Tracers = false
 ESPLibrary.GlobalConfig.Arrows = false
-
 if Checkbox == nil then
 Library.ForceCheckbox = true
 else
 Library.ForceCheckbox = Checkbox
 end
 Library.NotifySide = "Right"
-
 Connections = {}
-
 Library:Notify("正在加载 Sapphire | Doors",5)
-
 Window = Library:CreateWindow({
 Title = '💎 Sapphire',
-Footer = "LEAKED BY YUANTAI15041(3657198102)",
+Footer = "",
 Center = true,
 NotifySide = "Right",
 AutoShow = true
 })
-
 if UIStyle == "LinoriaLib" then
 Tabs = {
 Homepage = Window:AddTab("主页"),
@@ -215,19 +188,15 @@ Icon = "boxes"
 })
 }
 end
-
 User = Tabs.Homepage:AddLeftGroupbox("用户信息","user-round")
 Info = Tabs.Homepage:AddRightGroupbox("信息","info")
-
 Movement = Tabs.Player:AddLeftGroupbox("移动")
 Automation = Tabs.Player:AddRightGroupbox('自动化')
 ReachBox = Tabs.Player:AddLeftGroupbox('距离')
 MiscBox = Tabs.Player:AddRightGroupbox("杂项")
-
 Anti = Tabs.Exploits:AddLeftGroupbox('防止实体')
 Bypass = Tabs.Exploits:AddRightGroupbox('绕过')
 Troll = Tabs.Exploits:AddLeftGroupbox('恶搞')
-
 TabBox = Tabs.Visuals:AddLeftTabbox()
 ESP = TabBox:AddTab('ESP')
 SettingsESP = TabBox:AddTab('设置')
@@ -238,14 +207,11 @@ Ambient = Tabs.Visuals:AddLeftGroupbox("环境")
 TabBox3 = Tabs.Visuals:AddRightTabbox()
 Self = TabBox3:AddTab('自己')
 Effect = TabBox3:AddTab('效果')
-
 FloorAnti = Tabs.Floor:AddLeftGroupbox('楼层绕过')
 Other = Tabs.Floor:AddRightGroupbox("其它")
 ModifiersBox = Tabs.Floor:AddLeftGroupbox('修饰符')
 Farm = Tabs.Floor:AddLeftGroupbox("农场")
-
 SettingsBox = Tabs.UISettings:AddLeftGroupbox('UI','wrench')
-
 Tabs.Homepage:UpdateWarningBox({
 Title = "更新日志：",
 Text = "//Doors//\n<font color=\"rgb(73,230,133)\">修复防 Jamming\n修复UI样式LinoriaLib\n改进假死</font>",
@@ -253,7 +219,6 @@ IsNormal = true,
 Visible = true,
 LockSize = true,
 })
-
 success, result = pcall(function()
 thumbnailType = Enum.ThumbnailType.HeadShot
 thumbnailSize = Enum.ThumbnailSize.Size100x100
@@ -279,23 +244,22 @@ Library:Notify("无法访问剪贴板，用户ID: " .. userId, 10)
 end
 end
 })
-
-Info:AddLabel("[<font color=\"rgb(73,230,133)\">麤欻飍𠯶貤鬯𥫗𠔉�</font>] LEAKER")
-
+Info:AddLabel("")
 Movement:AddToggle('SpeedBoost', {
     Text = "移动速度",
     Default = false,
 Callback = function(Value)
-if Character and Character.Humanoid then
+local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local humanoid = char:FindFirstChildOfClass("Humanoid")
+if humanoid then
 if Value then
-Character.Humanoid.WalkSpeed = Speed
+humanoid.WalkSpeed = Speed
 else
-Character.Humanoid.WalkSpeed = 16
+humanoid.WalkSpeed = 16
 end
 end
 end
 })
-
 Speed = 15
 Movement:AddSlider("SpeedBoostSlider", {
     Text = "移动速度值",
@@ -305,12 +269,26 @@ Movement:AddSlider("SpeedBoostSlider", {
     Rounding = 1,
 Callback = function(Value)
 Speed = Value
-if Toggles.SpeedBoost.Value and Character and Character.Humanoid then
-Character.Humanoid.WalkSpeed = Speed
+local char = LocalPlayer.Character
+local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+if Toggles.SpeedBoost.Value and humanoid then
+humanoid.WalkSpeed = Speed
 end
 end,      
 })
-
+local speedWalkConn = nil
+LocalPlayer.CharacterAdded:Connect(function(char)
+local humanoid = char:WaitForChildOfClass("Humanoid")
+if speedWalkConn then speedWalkConn:Disconnect() end
+speedWalkConn = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+if Toggles.SpeedBoost.Value then
+humanoid.WalkSpeed = Speed
+end
+end)
+if Toggles.SpeedBoost.Value then
+humanoid.WalkSpeed = Speed
+end
+end)
 LadderSpeedSlider = Movement:AddSlider("LadderSpeedBoost", {
     Text = "爬梯子加速",
     Default = 5,
@@ -336,7 +314,6 @@ if Floor:IsA("StringValue") then
 table.insert(Connections, Floor.Changed:Connect(updateLadderSpeedSlider))
 end
 updateLadderSpeedSlider()
-
 Movement:AddToggle('EnableJump', {
     Text = "启用跳跃",
     Default = false
@@ -349,7 +326,6 @@ end)
 if LocalPlayer.Character and Toggles.EnableJump and Toggles.EnableJump.Value then
 LocalPlayer.Character:SetAttribute("CanJump", true)
 end
-
 jumpPowerValue = 5
 Movement:AddSlider("JumpPowerSlider", {
     Text = "跳跃提升",
@@ -408,7 +384,6 @@ Options.JumpPowerSlider:OnChanged(function()
 jumpPowerValue = Options.JumpPowerSlider.Value
 applyJumpPower()
 end)
-
 Movement:AddToggle('InfiniteJump', {
     Text = "无限跳跃",
     Default = false
@@ -430,14 +405,49 @@ Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 end
 end
 end))
-
-
 Movement:AddToggle('Noacceleration', {
     Text = "无加速度",
     Default = false
 })
+Toggles.Noacceleration:OnChanged(function(Value)
+local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local root = char:FindFirstChild("HumanoidRootPart")
+local collision = char:FindFirstChild("Collision")
+local humanoid = char:FindFirstChildOfClass("Humanoid")
+if Value then
+local phys = PhysicalProperties.new(100, 1, 0)
+if root then root.CustomPhysicalProperties = phys end
+if collision then collision.CustomPhysicalProperties = phys end
+if humanoid then
+humanoid.Friction = 1
+humanoid.FrictionWeight = 100
+end
+else
+local phys = PhysicalProperties.new(0.4, 0.2, 0.2)
+if root then root.CustomPhysicalProperties = phys end
+if collision then collision.CustomPhysicalProperties = phys end
+if humanoid then
+humanoid.Friction = 0.3
+humanoid.FrictionWeight = 1
+end
+end
+end)
+LocalPlayer.CharacterAdded:Connect(function(char)
+task.wait(0.1)
+if Toggles.Noacceleration.Value then
+local root = char:FindFirstChild("HumanoidRootPart")
+local collision = char:FindFirstChild("Collision")
+local humanoid = char:FindFirstChildOfClass("Humanoid")
+local phys = PhysicalProperties.new(100, 1, 0)
+if root then root.CustomPhysicalProperties = phys end
+if collision then collision.CustomPhysicalProperties = phys end
+if humanoid then
+humanoid.Friction = 1
+humanoid.FrictionWeight = 100
+end
+end
+end)
 Movement:AddDivider()
-
 Movement:AddToggle('InstantPrompt', {
     Text = "快速互动",
     Default = false,
@@ -458,12 +468,10 @@ end
 end
 end
 })
-
 Movement:AddToggle('NoClosetExitDelay', {
     Text = "无出柜延迟",
     Default = false
 })
-
 Movement:AddToggle('AntiAfk', {
     Text = "防挂机",
     Default = false
@@ -475,7 +483,6 @@ VirtualUser:ClickButton2(Vector2.new())
 end
 end))
 Movement:AddDivider()
-
 Movement:AddToggle('Noclip', {
     Text = "穿墙",
     Default = false
@@ -489,18 +496,28 @@ Movement:AddToggle('Noclip', {
     ChangedCallback = function(New) end
 })
 Toggles.Noclip:OnChanged(function(Value)
+local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local collision = char:FindFirstChild("Collision")
+local root = char:FindFirstChild("HumanoidRootPart")
+local collisionPart = char:FindFirstChild("CollisionPart")
 if not Value then 
-LocalPlayer.Character.Collision.CanCollide = true 
-if Character.Collision:FindFirstChild("CollisionCrouch") then
-LocalPlayer.Character.Collision.CollisionCrouch.CanCollide = true
+if collision then
+collision.CanCollide = true
+local crouch = collision:FindFirstChild("CollisionCrouch")
+if crouch then crouch.CanCollide = true end
 end
-LocalPlayer.Character.HumanoidRootPart.CanCollide = true
-if LocalPlayer.Character:FindFirstChild("CollisionPart") then
-LocalPlayer.Character:FindFirstChild("CollisionPart").CanCollide = true
+if root then root.CanCollide = true end
+if collisionPart then collisionPart.CanCollide = true end
+else
+if collision then
+collision.CanCollide = false
+local crouch = collision:FindFirstChild("CollisionCrouch")
+if crouch then crouch.CanCollide = false end
 end
+if root then root.CanCollide = false end
+if collisionPart then collisionPart.CanCollide = false end
 end
 end)
-
 Fly = Fly or {}
 Fly.Enabled = false
 Fly.Speed = 15
@@ -674,7 +691,6 @@ Callback = function(v)
 Fly.SetSpeed(v)
 end
 })
-
 local Ignore = {
     HidePrompt = true,
     RiftPrompt = true,
@@ -716,7 +732,6 @@ end,
 ChangedCallback = function(New)
 end
 })
-
 Automation:AddDropdown("IgnoreList", {
     Values = {"Jeff物品", "金币", "糖果", "丢弃物品", "故障方块", "死亡糖果"},
     Default = 1,
@@ -726,7 +741,6 @@ Callback = function(Value)
 end,
 })
 Automation:AddDivider()
-
 Automation:AddToggle('AutoHeartbeatMiniGame', {
     Text = "自动心跳小游戏",
     Default = false
@@ -742,7 +756,6 @@ return oldHeartbeatNamecall(self, unpack(args))
 end
 return oldHeartbeatNamecall(self, ...)
 end))
-
 local PL = nil
 local UnlockDistance = 40
 Automation:AddToggle('AutoCodeFire', {
