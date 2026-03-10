@@ -241,7 +241,7 @@ Farm = Tabs.Floor:AddLeftGroupbox("农场")
 SettingsBox = Tabs.UISettings:AddLeftGroupbox('UI','wrench')
 Tabs.Homepage:UpdateWarningBox({
 Title = "更新日志：",
-Text = "//Doors//\n<font color=\"rgb(73,230,133)\">修复防 Jamming\n修复UI样式LinoriaLib\n改进假死</font>",
+Text = "//Doors//被开源
 IsNormal = true,
 Visible = true,
 LockSize = true,
@@ -302,7 +302,7 @@ Movement:AddSlider("SpeedBoostSlider", {
     Text = "移动速度值",
     Default = 15,
     Min = 15,
-    Max = 21,
+    Max = 23,
     Rounding = 1,
 Callback = function(Value)
 Speed = Value
@@ -505,13 +505,72 @@ end
 end
 end
 })
-Movement:AddToggle('NoClosetExitDelay', {
-    Text = "无出柜延迟",
-    Default = false
-})
 Movement:AddToggle('AntiAfk', {
     Text = "防挂机",
-    Default = false
+    Default = false,
+Callback = function(Value)
+    if Value then
+        if not VirtualUser then
+            Library:Notify("当前执行器不支持防挂机功能", 3)
+            Toggles.AntiAfk:SetValue(false)
+            return
+        end
+        local antiAfkConn = RunService.RenderStepped:Connect(function()
+            if not Toggles.AntiAfk.Value then return end
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+                local x = math.random(-10, 10)
+                local y = math.random(-10, 10)
+                VirtualUser:MoveMouse(Vector2.new(x, y))
+            end
+        end)
+        table.insert(Connections, antiAfkConn)
+        Library:Notify("防挂机已启用", 2)
+    else
+        for i = #Connections, 1, -1 do
+            local conn = Connections[i]
+            if conn then conn:Disconnect() end
+            table.remove(Connections, i)
+        end
+        Library:Notify("防挂机已禁用", 2)
+    end
+end
+})
+
+Movement:AddToggle('NoClosetExitDelay', {
+    Text = "无出柜延迟",
+    Default = false,
+Callback = function(Value)
+    if Value then
+        local exitConn = LocalPlayer.Character:GetAttributeChangedSignal("Hiding"):Connect(function()
+            local isHiding = LocalPlayer.Character:GetAttribute("Hiding")
+            if not isHiding then
+                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = Toggles.SpeedBoost.Value and Speed or 16
+                    humanoid.JumpPower = jumpPowerValue
+                end
+                if RemoteFolder and RemoteFolder:FindFirstChild("ExitCloset") then
+                    RemoteFolder.ExitCloset:FireServer()
+                end
+                if RemoteFolder and RemoteFolder:FindFirstChild("CamLock") then
+                    RemoteFolder.CamLock:FireServer(false)
+                end
+            end
+        end)
+        table.insert(Connections, exitConn)
+        Library:Notify("无出柜延迟已启用", 2)
+    else
+        for i = #Connections, 1, -1 do
+            local conn = Connections[i]
+            if conn then conn:Disconnect() end
+            table.remove(Connections, i)
+        end
+        Library:Notify("无出柜延迟已禁用", 2)
+    end
+end
 })
 table.insert(Connections, LocalPlayer.Idled:Connect(function()
 if Toggles.AntiAfk.Value then
@@ -1092,6 +1151,109 @@ end
 end
 end
 end
+local AutoHide = {
+    Enabled = false, Hiding = false, Cooldown = 10, LastHideTime = 0,
+    EntitySettings = {
+        RushMoving = { SafeDistance = 22, KillRange = 4, LineOfSight = true },
+        AmbushMoving = { SafeDistance = 20, KillRange = 3, LineOfSight = true },
+        A60 = { SafeDistance = 18, KillRange = 5, LineOfSight = false },
+        A120 = { SafeDistance = 20, KillRange = 6, LineOfSight = false },
+        BackdoorRush = { SafeDistance = 21, KillRange = 3.5, LineOfSight = true },
+        GlitchRush = { SafeDistance = 23, KillRange = 4.5, LineOfSight = false },
+        GlitchAmbush = { SafeDistance = 21, KillRange = 3.5, LineOfSight = false }
+    }
+}
+
+local HidingSpotTypes = { Wardrobe = true, Rooms_Locker = true, Locker_Large = true, Bed = true, CircularVent = true }
+
+local function isLineOfSightClear(root, entity)
+    local rcp = RaycastParams.new()
+    rcp.FilterType = Enum.RaycastFilterType.Blacklist
+    rcp.FilterDescendantsInstances = {game.Players.LocalPlayer.Character, entity}
+    local from = root.Position + Vector3.new(0,1.5,0)
+    local to = entity.PrimaryPart.Position
+    local res = workspace:Raycast(from, (to-from).Unit * (to-from).Magnitude, rcp)
+    return not res
+end
+
+local function scanHidingSpots()
+    local list = {}
+    local char = game.Players.LocalPlayer.Character
+    if not char then return list end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local room = game.Players.LocalPlayer:GetAttribute("CurrentRoom") or game.ReplicatedStorage.GameData.LatestRoom.Value
+    for _,n in ipairs({room, room+1}) do
+        local r = workspace.CurrentRooms:FindFirstChild(tostring(n))
+        if r and r:FindFirstChild("Assets") then
+            for _,s in ipairs(r.Assets:GetChildren()) do
+                if HidingSpotTypes[s.Name] and s.PrimaryPart and not (s:FindFirstChild("HiddenPlayer") and s.HiddenPlayer.Value) then
+                    local d = (root.Position - s.PrimaryPart.Position).Magnitude
+                    local pr = s:FindFirstChildOfClass("ProximityPrompt")
+                    if pr then table.insert(list, {spot=s, dist=d, prompt=pr}) end
+                end
+            end
+        end
+    end
+    table.sort(list, function(a,b) return a.dist < b.dist end)
+    return list
+end
+
+local function moveAndHide(t)
+    local char = game.Players.LocalPlayer.Character
+    if not char or not t or not t.prompt then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    hum:MoveTo(t.spot.PrimaryPart.Position)
+    hum.MoveToFinished:Wait()
+    fireproximityprompt(t.prompt)
+    AutoHide.Hiding = true
+    AutoHide.LastHideTime = tick()
+end
+
+local function detectDanger()
+    local char = game.Players.LocalPlayer.Character
+    if not char then return false end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    for name, set in pairs(AutoHide.EntitySettings) do
+        local e = workspace:FindFirstChild(name)
+        if e and e.PrimaryPart then
+            local d = (root.Position - e.PrimaryPart.Position).Magnitude
+            if d <= set.SafeDistance and d > set.KillRange then
+                if not set.LineOfSight or isLineOfSightClear(root, e) then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function autoHideLoop()
+    while task.wait(0.3) do
+        if not AutoHide.Enabled or AutoHide.Hiding then continue end
+        if tick() - AutoHide.LastHideTime < AutoHide.Cooldown then continue end
+        if detectDanger() then
+            local spots = scanHidingSpots()
+            if #spots > 0 then moveAndHide(spots[1]) end
+        end
+    end
+end
+
+Automation:AddToggle('AutoHide', {
+    Text = "自动躲藏",
+    Default = false,
+    Callback = function(v)
+        AutoHide.Enabled = v
+        if v then task.spawn(autoHideLoop) Library:Notify("自动躲藏已启用",2) end
+    end
+}):AddKeyPicker('AutoHideKey', {
+    Default = 'H',
+    Text = "手动躲藏",
+    Mode = 'Press',
+    Callback = function()
+        local s = scanHidingSpots()
+        if #s > 0 then moveAndHide(s[1]) end
+    end
+})
 Automation:AddToggle('AutoAnchorSolver', {
     Text = "自动密码机",
     Default = false,
@@ -1111,17 +1273,12 @@ else
 autoAnchorRunning = false
 if autoAnchorConnection then
 autoAnchorConnection:Disconnect()
-autoAnchorConnection = nil
+AnchorConnection = nil
 end
 end
 end
 })
 end
-
-ReachBox:AddToggle('DoorReach',{
-     Text = "延长开门",
-     Default = false
-})
 
 ReachBox:AddToggle('PromptClip',{
      Text = "穿墙互动",
@@ -1182,7 +1339,7 @@ ReachBox:AddSlider("PromptReachMultiplier", {
     Text = "互动距离",
     Default = 1.0,
     Min = 1.0,
-    Max = 2.0,
+    Max = 2.1,
     Rounding = 1,
     Compact = true,
 Callback = function(Value)
@@ -1291,9 +1448,26 @@ end
 })
 
 Anti:AddToggle('AntiEyes',{
-     Text = "防 Eyes",
-     Default = false
-})
+      Text = "防 Eyes",
+      Default = false,
+ Callback = function(Value)
+     if Value then
+         local eyesConn = RunService.Heartbeat:Connect(function()
+             local eyes = Workspace:FindFirstChild("Eyes")
+             if eyes and RemoteFolder and RemoteFolder:FindFirstChild("MotorReplication") then
+                 RemoteFolder.MotorReplication:FireServer(-890)
+             end
+         end)
+         table.insert(Connections, eyesConn)
+     else
+         for i = #Connections, 1, -1 do
+             local conn = Connections[i]
+             if conn then conn:Disconnect() end
+             table.remove(Connections, i)
+         end
+     end
+ end
+ })
 
 Anti:AddToggle('AntiSnare',{
      Text = "防 Snare",
@@ -1317,8 +1491,37 @@ end
 
 Anti:AddToggle('AntiHear',{
      Text = "防飞哥听力",
-     Default = false
+     Default = false,
+Callback = function(Value)
+    if Value then
+        if RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
+            RemoteFolder.Crouch:FireServer(true)
+        end
+        local crouchConn = RunService.RenderStepped:Connect(function()
+            if Toggles.AntiHear.Value and RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
+                RemoteFolder.Crouch:FireServer(true)
+            end
+        end)
+        table.insert(Connections, crouchConn)
+    else
+        if RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
+            RemoteFolder.Crouch:FireServer(false)
+        end
+        for i = #Connections, 1, -1 do
+            local conn = Connections[i]
+            if conn then conn:Disconnect() end
+            table.remove(Connections, i)
+        end
+    end
+end
 })
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+    if Toggles and Toggles.AntiHear and Toggles.AntiHear.Value and RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
+        RemoteFolder.Crouch:FireServer(true)
+    end
+end)
 Toggles.AntiHear:OnChanged(function(Value)
 if Value then
 if RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
@@ -1783,34 +1986,138 @@ end
 end
 })
 
+local LockpickParents = { ChestBoxLocked = true, Locker_Small_Locked = true, Toolbox_Locked = true, LockedChest = true, Padlock = true, DoorLock = true }
+local LockpickNames = { UnlockPrompt = true, LockPrompt = true, SkullPrompt = true, PadlockPrompt = true }
+local LockpickTools = { Lockpick = true, SkeletonKey = true, MasterKey = true }
+local ShearsParents = { Chest_Vine = true, CuttableVines = true, VineDoor = true }
+local ShearsNames = { CutPrompt = true, ShearsPrompt = true }
+local ShearsTool = "Shears"
+local InfLockpickStore = {}
+local InfShearsStore = {}
+local FakePromptMark = "InfiniteFakePrompt"
+
+local function scanLockpickPrompts()
+    local prompts = {}
+    for _, v in ipairs(workspace.CurrentRooms:GetDescendants()) do
+        if v:IsA("ProximityPrompt") and (LockpickParents[v.Parent.Name] or LockpickNames[v.Name]) and not v:GetAttribute(FakePromptMark) then
+            table.insert(prompts, v)
+        end
+    end
+    return prompts
+end
+
+local function scanShearsPrompts()
+    local prompts = {}
+    for _, v in ipairs(workspace.CurrentRooms:GetDescendants()) do
+        if v:IsA("ProximityPrompt") and (ShearsParents[v.Parent.Name] or ShearsNames[v.Name]) and not v:GetAttribute(FakePromptMark) then
+            table.insert(prompts, v)
+        end
+    end
+    return prompts
+end
+
+local function cleanupLockpickPrompts()
+    for o,f in pairs(InfLockpickStore) do if f and f.Parent then f:Destroy() end if o and o.Parent then o.Enabled = true o.ClickablePrompt = true o:SetAttribute(FakePromptMark,nil) end end table.clear(InfLockpickStore)
+end
+
+local function cleanupShearsPrompts()
+    for o,f in pairs(InfShearsStore) do if f and f.Parent then f:Destroy() end if o and o.Parent then o.Enabled = true o.ClickablePrompt = true o:SetAttribute(FakePromptMark,nil) end end table.clear(InfShearsStore)
+end
+
+local function addLockpickFakePrompt(p)
+    if not p or not p.Parent or InfLockpickStore[p] then return end
+    p:SetAttribute(FakePromptMark,true)
+    local f = p:Clone()
+    f.Name = FakePromptMark
+    f.Parent = p.Parent
+    f.Enabled = true
+    f.ClickablePrompt = true
+    InfLockpickStore[p] = f
+    f.Triggered:Connect(function(plr)
+        if plr ~= game:GetService("Players").LocalPlayer then return end
+        local char = game:GetService("Players").LocalPlayer.Character
+        if not char then return end
+        local tool = nil
+        for _,c in ipairs(char:GetChildren()) do if c:IsA("Tool") and LockpickTools[c.Name] then tool = c break end end
+        if not tool then Library:Notify("未持有工具",2) return end
+        fireproximityprompt(p)
+        task.wait(0.15)
+        pcall(function() game.ReplicatedStorage.GameAPI.DropItem:FireServer(tool) end)
+        local con
+        con = workspace.DescendantAdded:Connect(function(d)
+            if d.Name == tool.Name and d:IsA("Tool") then
+                task.wait(0.05)
+                local pp = d:FindFirstChildOfClass("ProximityPrompt")
+                if pp then fireproximityprompt(pp) end
+                con:Disconnect()
+            end
+        end)
+        task.delay(2,function() if con then con:Disconnect() end end)
+    end)
+    p.Enabled = false
+    p.ClickablePrompt = false
+end
+
+local function addShearsFakePrompt(p)
+    if not p or not p.Parent or InfShearsStore[p] then return end
+    p:SetAttribute(FakePromptMark,true)
+    local f = p:Clone()
+    f.Name = FakePromptMark
+    f.Parent = p.Parent
+    f.Enabled = true
+    f.ClickablePrompt = true
+    InfShearsStore[p] = f
+    f.Triggered:Connect(function(plr)
+        if plr ~= game:GetService("Players").LocalPlayer then return end
+        local char = game:GetService("Players").LocalPlayer.Character
+        if not char then return end
+        local tool = char:FindFirstChild(ShearsTool)
+        if not tool or not tool:IsA("Tool") then Library:Notify("未持有剪刀",2) return end
+        fireproximityprompt(p)
+        task.wait(0.15)
+        pcall(function() game.ReplicatedStorage.GameAPI.DropItem:FireServer(tool) end)
+        local con
+        con = workspace.DescendantAdded:Connect(function(d)
+            if d.Name == ShearsTool and d:IsA("Tool") then
+                task.wait(0.05)
+                local pp = d:FindFirstChildOfClass("ProximityPrompt")
+                if pp then fireproximityprompt(pp) end
+                con:Disconnect()
+            end
+        end)
+        task.delay(2,function() if con then con:Disconnect() end end)
+    end)
+    p.Enabled = false
+    p.ClickablePrompt = false
+end
+
+Bypass:AddToggle('InfiniteItems', {
+    Text = "无限物品",
+    Default = false,
+    Callback = function(v)
+        if v then
+            for _,p in ipairs(scanLockpickPrompts()) do addLockpickFakePrompt(p) end
+            Library:Notify("无限物品已启用",2)
+        else
+            cleanupLockpickPrompts()
+            Library:Notify("无限物品已禁用",2)
+        end
+    end
+})
+
 Bypass:AddToggle('InfiniteSItems', {
     Text = "无限剪刀",
     Default = false,
-Callback = function(Value)
-if Value then
-if Disable3 then
-Library:Notify("当前执行器不支持此功能", 3)
-Toggles.InfiniteSItems:SetValue(false)
-return
-end
-InfSStore = scanPrompts(ShearsParents, ShearsNames)
-if not realtimeDetectionConn then
-realtimeDetectionConn = setupRealtimeDetection()
-end
-local infiniteSCheckConn = RunService.Heartbeat:Connect(function()
-if not Toggles.InfiniteSItems.Value then 
-return 
-end
-local hasTool = LocalPlayer.Character and 
-LocalPlayer.Character:FindFirstChild("Shears")
-if hasTool then
-for _, prompt in ipairs(InfSStore) do
-if prompt and prompt.Parent and not prompt:GetAttribute("HasFake") then
-addFake(prompt, "Shears")
-end
-end
-end
-end)
+    Callback = function(v)
+        if v then
+            for _,p in ipairs(scanShearsPrompts()) do addShearsFakePrompt(p) end
+            Library:Notify("无限剪刀已启用",2)
+        else
+            cleanupShearsPrompts()
+            Library:Notify("无限剪刀已禁用",2)
+        end
+    end
+})
 table.insert(Connections, infiniteSCheckConn)
 else
 cleanupEnableReal()
@@ -1979,28 +2286,79 @@ end
 end)
 end)
 end
+local SecondLiveConnection = nil
+local function setupSecondLive()
+    local player = game:GetService("Players").LocalPlayer
+    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid") or player.Character:WaitForChild("Humanoid")
+    if SecondLiveConnection then
+        SecondLiveConnection:Disconnect()
+    end
+    SecondLiveConnection = humanoid.Died:Connect(function()
+        task.delay(0.5, function()
+            game:GetService("Workspace").Gravity = 0
+            local char = player.Character
+            if not char then return end
+            local hum = char:FindFirstChild("Humanoid")
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if not hum or not root then return end
+            hum.Health = hum.MaxHealth
+            hum.AutomaticScalingEnabled = true
+            hum.HipHeight = 2.4
+            if char:GetAttribute("Stunned") then
+                char:SetAttribute("Stunned", false)
+            end
+            local room = game:GetService("ReplicatedStorage").GameData.LatestRoom.Value
+            local rm = game:GetService("Workspace").CurrentRooms:FindFirstChild(tostring(room))
+            local door = rm and rm:FindFirstChild("Door") and rm.Door:FindFirstChild("Door")
+            if door then
+                root.CFrame = door.CFrame + Vector3.new(0, 3, 0)
+                task.delay(1, function()
+                    if SecondLiveConnection then
+                        game:GetService("Workspace").Gravity = workspace.Gravity
+                        game:GetService("SoundService").Volume = 1
+                    end
+                })
+            end
+        end)
+    end)
+end
+
 Bypass:AddButton({
     Text = "假死",
-DoubleClick = true,
-Risky = true,
-Func = function()
-local currentRoom = LocalPlayer:GetAttribute("CurrentRoom") or ReplicatedStorage.GameData.LatestRoom.Value
-if currentRoom >= 1 then
-setupSecondLive()
-player.CharacterAdded:Connect(function()
-setupSecondLive()
-end)
-task.wait(1)
-replicatesignal(LocalPlayer.Kill)
-task.wait(1)
-game:GetService("CoreGui"):FindFirstChild("RobloxGui").Backpack.Visible = true
-game:GetService("Players").LocalPlayer:SetAttribute("Alive",true)
-game:GetService("Players").LocalPlayer:SetAttribute("FakeDeath",true)
-Library:Notify("拾取创口贴后恢复所有互动", 5)
-else
-Library:Notify("进入下一个房间后假死才能正常工作", 5)
-end
-end
+    DoubleClick = true,
+    Risky = true,
+    Func = function()
+        local currentRoom = game:GetService("Players").LocalPlayer:GetAttribute("CurrentRoom") or game:GetService("ReplicatedStorage").GameData.LatestRoom.Value
+        if currentRoom >= 1 then
+            setupSecondLive()
+            local charAddedConn = game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(newChar)
+                setupSecondLive()
+                task.wait(0.2)
+                local humanoid = newChar:WaitForChild("Humanoid")
+                humanoid.HipHeight = 2.4
+                task.wait(0.1)
+                local cam = game:GetService("Workspace").CurrentCamera
+                if cam then
+                    cam.CFrame = newChar.HumanoidRootPart.CFrame * CFrame.new(0, 2.4, -5)
+                end
+                game:GetService("SoundService").Volume = 1
+                for _, v in ipairs(game:GetService("Workspace").CurrentRooms:GetDescendants()) do
+                    if v:IsA("ProximityPrompt") then
+                        v.ClickablePrompt = true
+                        v.Enabled = true
+                    end
+                end
+            end)
+            task.wait(1)
+            task.wait(1)
+           game:GetService("CoreGui"):FindFirstChild("RobloxGui").Backpack.Visible = true
+            game:GetService("Players").LocalPlayer:SetAttribute("Alive",true)
+            game:GetService("Players").LocalPlayer:SetAttribute("FakeDeath",true)
+            Library:Notify("拾取创口贴后恢复所有互动", 5)
+        else
+            Library:Notify("进入下一个房间后假死才能正常工作", 5)
+        end
+    end
 })
 
 Troll:AddToggle("Spamtoolz", { 
@@ -5591,7 +5949,33 @@ end
 
 ModifiersBox:AddToggle('AntiLookman', {
     Text = "防 Lookman",
-    Default = false
+    Default = false,
+Callback = function(Value)
+    if Value then
+        local lookmanConn
+        local checkLookmanConn = RunService.Heartbeat:Connect(function()
+            local lookman = Workspace:FindFirstChild("BackdoorLookman")
+            if lookman and RemoteFolder and RemoteFolder:FindFirstChild("MotorReplication") then
+                RemoteFolder.MotorReplication:FireServer(-890)
+            end
+        end)
+        lookmanConn = Workspace.ChildAdded:Connect(function(child)
+            if child.Name == "BackdoorLookman" and RemoteFolder and RemoteFolder:FindFirstChild("MotorReplication") then
+                RemoteFolder.MotorReplication:FireServer(-890)
+            end
+        end)
+        table.insert(Connections, lookmanConn)
+        table.insert(Connections, checkLookmanConn)
+        Library:Notify("防 Lookman 已启用", 2)
+    else
+        for i = #Connections, 1, -1 do
+            local conn = Connections[i]
+            if conn then conn:Disconnect() end
+            table.remove(Connections, i)
+        end
+        Library:Notify("防 Lookman 已禁用", 2)
+    end
+end
 })
 
 ModifiersBox:AddToggle('AntiGiggle',{
@@ -6361,7 +6745,7 @@ SaveManager:SaveAutoloadConfig()
 
 Tabs.Info:UpdateWarningBox({
 Title = "所有的使用者必看",
-Text = "［<font color=\"rgb(255,0,0)\">流fake人</font>］B站UID:604520016\n<font color=\"rgb(255,0,0)\">流fake人</font> 我不知道为啥你们骂他",
+Text = "沙子脚本已被开源"
 IsNormal = true,
 Visible = true,
 LockSize = true,
