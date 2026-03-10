@@ -154,7 +154,7 @@ Library.NotifySide = "Right"
 Connections = {}
 Library:Notify("正在加载 Sapphire | Doors",5)
 Window = Library:CreateWindow({
-Title = '💎 Sapphire',
+Title = '💎 Sapphire v2',
 Footer = "",
 Center = true,
 NotifySide = "Right",
@@ -241,7 +241,7 @@ Farm = Tabs.Floor:AddLeftGroupbox("农场")
 SettingsBox = Tabs.UISettings:AddLeftGroupbox('UI','wrench')
 Tabs.Homepage:UpdateWarningBox({
 Title = "更新日志：",
-Text = "//Doors//被开源
+Text = "//Doors//被开源",
 IsNormal = true,
 Visible = true,
 LockSize = true,
@@ -6745,7 +6745,7 @@ SaveManager:SaveAutoloadConfig()
 
 Tabs.Info:UpdateWarningBox({
 Title = "所有的使用者必看",
-Text = "沙子脚本已被开源"
+Text = "沙子脚本已被开源",
 IsNormal = true,
 Visible = true,
 LockSize = true,
