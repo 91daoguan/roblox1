@@ -6122,7 +6122,105 @@ autoGlitchEnabled = false
 if Toggles.AutoGlitch and Toggles.AutoGlitch.Value then
 Toggles.AutoGlitch:SetValue(false)
 end
+local AutoHideEnabled = false
+local AutoHideConnection = nil
+local HideDangerDistance = 80
+local HidingSpotTypes = {
+    Wardrobe = true,
+    Rooms_Locker = true,
+    Backdoor_Wardrobe = true,
+    Toolshed = true,
+    Locker_Large = true,
+    Bed = true,
+    CircularVent = true,
+    Rooms_Locker_Fridge = true,
+    RetroWardrobe = true,
+    Dumpster = true,
+    Double_Bed = true
+}
+Automation:AddToggle('AutoHide', {
+    Text = "自动躲藏",
+    Default = false,
+    Risky = true,
+    Tooltip = "危险实体靠近时自动躲入最近的柜子",
+Callback = function(Value)
+        AutoHideEnabled = Value
+        if Value then
+            AutoHideConnection = RunService.Heartbeat:Connect(function()
+                if not AutoHideEnabled then return end
+                local character = LocalPlayer.Character
+                if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+                if character:GetAttribute("Hiding") == true then return end
+                local alive = LocalPlayer:GetAttribute("Alive")
+                if not alive then return end
 
+                local hasDangerEntity = false
+                local playerPos = character.HumanoidRootPart.Position
+                local dangerEntities = {
+                    "RushMoving", "AmbushMoving", "A60", "A120",
+                    "BackdoorRush", "GlitchRush", "GlitchAmbush"
+                }
+                for _, entityName in ipairs(dangerEntities) do
+                    local entity = workspace:FindFirstChild(entityName)
+                    if entity and entity.PrimaryPart then
+                        local dist = (playerPos - entity.PrimaryPart.Position).Magnitude
+                        if dist <= HideDangerDistance then
+                            hasDangerEntity = true
+                            break
+                        end
+                    end
+                end
+                if not hasDangerEntity then return end
+
+                local currentRoom = LocalPlayer:GetAttribute("CurrentRoom")
+                if not currentRoom then return end
+                local targetRooms = {tostring(currentRoom), tostring(currentRoom + 1)}
+                local nearestHide = nil
+                local nearestDist = math.huge
+
+                for _, roomNum in ipairs(targetRooms) do
+                    local room = workspace.CurrentRooms:FindFirstChild(roomNum)
+                    if not room then continue end
+                    local assets = room:FindFirstChild("Assets")
+                    if assets then
+                        for _, spot in ipairs(assets:GetChildren()) do
+                            if HidingSpotTypes[spot.Name] and spot.PrimaryPart then
+                                local hidePrompt = spot:FindFirstChild("HidePrompt", true)
+                                if hidePrompt and hidePrompt:IsA("ProximityPrompt") and hidePrompt.ClickablePrompt then
+                                    local dist = (playerPos - spot.PrimaryPart.Position).Magnitude
+                                    if dist < nearestDist then
+                                        nearestDist = dist
+                                        nearestHide = hidePrompt
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
+                if nearestHide then
+                    fireproximityprompt(nearestHide)
+                end
+            end)
+            table.insert(Connections, AutoHideConnection)
+        else
+            if AutoHideConnection then
+                AutoHideConnection:Disconnect()
+                AutoHideConnection = nil
+            end
+        end
+    end
+})
+Automation:AddSlider('AutoHideDistance', {
+    Text = "实体触发距离",
+    Default = 80,
+    Min = 30,
+    Max = 150,
+    Rounding = 0,
+    Callback = function(Value)
+        HideDangerDistance = Value
+    end
+})
 Character.Humanoid.PlatformStand = false 
 Character:SetAttribute("CanJump",false)
 
