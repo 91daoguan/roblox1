@@ -141,7 +141,6 @@ Library = loadstring(game:HttpGet(repo..'Library.lua'))()
 ThemeManager = loadstring(game:HttpGet(repo..'addons/ThemeManager.lua'))()
 SaveManager  = loadstring(game:HttpGet(repo..'addons/SaveManager.lua'))()
 Toggles = Library.Toggles
-Options = Library.Options
 ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
 ESPLibrary.GlobalConfig.Tracers = false
 ESPLibrary.GlobalConfig.Arrows = false
