@@ -154,7 +154,7 @@ Library.NotifySide = "Right"
 Connections = {}
 Library:Notify("正在加载 Sapphire | Doors",5)
 Window = Library:CreateWindow({
-Title = '💎 Sapphire',
+Title = '💎 Sapphire v2',
 Footer = "",
 Center = true,
 NotifySide = "Right",
@@ -302,7 +302,7 @@ Movement:AddSlider("SpeedBoostSlider", {
     Text = "移动速度值",
     Default = 15,
     Min = 15,
-    Max = 21,
+    Max = 23,
     Rounding = 1,
 Callback = function(Value)
 Speed = Value
@@ -1330,6 +1330,35 @@ RemoteFolder.Crouch:FireServer(false)
 end
 end
 end)
+Anti:AddToggle('DeleteFigure', {
+    Text = "删除飞哥",
+    Default = false
+})
+
+Anti:AddDivider()
+
+Anti:AddButton({
+    Text = "禁用实体",
+    DoubleClick = true,
+    Risky = true,
+    Func = function()
+        task.spawn(function()
+            local Remote = game:GetService("ReplicatedStorage").RemotesFolder:FindFirstChild("RequestAsset")
+            if not Remote then
+                Library:Notify("未找到实体远程事件，功能失效", 3)
+                return
+            end
+            for i = 1, 11 do
+                pcall(function() 
+                    Remote:InvokeServer("Remote") 
+                end)
+                task.wait(0.1)
+            end
+            Library:Notify("已执行禁用实体操作", 3)
+        end)
+    end
+})
+
 
 Bypass:AddDropdown("SpeedBypassMethod", {
     Values = {"质量切换", "网络休眠"},
