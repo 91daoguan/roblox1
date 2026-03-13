@@ -140,6 +140,7 @@ Executor = identifyexecutor() or getexecutorname() or "Unknown"
 Library = loadstring(game:HttpGet(repo..'Library.lua'))()
 ThemeManager = loadstring(game:HttpGet(repo..'addons/ThemeManager.lua'))()
 SaveManager  = loadstring(game:HttpGet(repo..'addons/SaveManager.lua'))()
+Options = Library.Options
 Toggles = Library.Toggles
 ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
 ESPLibrary.GlobalConfig.Tracers = false
@@ -151,7 +152,7 @@ Library.ForceCheckbox = Checkbox
 end
 Library.NotifySide = "Right"
 Connections = {}
-Library:Notify("正在加载 Sapphire v2| Doors",5)
+Library:Notify("正在加载 Sapphire v2 | Doors",5)
 Window = Library:CreateWindow({
 Title = '💎 Sapphire v2',
 Footer = "",
