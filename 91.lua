@@ -1238,34 +1238,6 @@ end
 end
 })
 
-Anti:AddToggle('DeleteFigure', {
-    Text = "删除飞哥",
-    Default = false
-    end
-})
-
-Anti:AddDivider()
-
-Anti:AddButton({
-    Text = "禁用实体",
-    DoubleClick = true,
-    Risky = true,
-    Func = function()
-        task.spawn(function()
-            local Remote = game.ReplicatedStorage.RemotesFolder:FindFirstChild("RequestAsset")
-            if not Remote then
-                Library:Notify("未找到实体远程事件，功能失效", 3)
-                return
-            end
-            for i = 1, 11 do
-                pcall(function() Remote:InvokeServer("Remote") end)
-                task.wait(0.1)
-            end
-            Library:Notify("已执行禁用实体操作", 3)
-        end)
-    end
-})
-
 Anti:AddToggle('AntiHalt',{
      Text = "防 Halt",
      Default = false,
@@ -5231,6 +5203,11 @@ end
 end
 
 if Floor.Value == "Mines" then
+FloorAnti:AddDivider()
+FloorAnti:AddToggle('DeleteFigure', {
+Text = "删除飞哥",
+Default = false
+})
 
 local minecartRenameActive = false
 local minecartToggleEnabled = false
@@ -5460,6 +5437,22 @@ SeekSlopRemote.Name = Value and "_SeekSlop" or "SeekSlop"
 end
 end
 })
+FloorAnti:AddDivider()
+
+FloorAnti:AddButton({
+Text = "禁用实体",
+DoubleClick = true,
+Risky = true,
+Func = function()
+task.spawn(function()
+for i = 1, 11 do
+game.ReplicatedStorage.RemotesFolder.RequestAsset:InvokeServer("Remote")
+task.wait(0.1)
+end
+end)
+end
+})
+end
 
 local MaxSlopeAngle = 45
 Other:AddSlider("MaxSlopeAngleSlider", {
