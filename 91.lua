@@ -1237,9 +1237,11 @@ Dread.Name = Value and "_Dread" or "Dread"
 end
 end
 })
+
 Anti:AddToggle('DeleteFigure', {
     Text = "删除飞哥",
     Default = false
+    end
 })
 
 Anti:AddDivider()
