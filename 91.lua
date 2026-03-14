@@ -1,5 +1,4 @@
 print("https链接索取成功")
-end
 if not game:IsLoaded() then game.Loaded:Wait() end
 Players = game:GetService("Players")
 LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
@@ -301,7 +300,7 @@ Movement:AddSlider("SpeedBoostSlider", {
     Text = "移动速度值",
     Default = 15,
     Min = 15,
-    Max = 21,
+    Max = 23,
     Rounding = 1,
 Callback = function(Value)
 Speed = Value
