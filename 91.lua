@@ -1,4 +1,5 @@
 print("https链接索取成功")
+end
 if not game:IsLoaded() then game.Loaded:Wait() end
 Players = game:GetService("Players")
 LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
