@@ -1,18 +1,3 @@
-
-local getexecutorname = getexecutorname or identifyexecutor or function() return "Ronix"
-end
-local identifyexecutor = identifyexecutor or getexecutorname or function() return "Ronix" 
-end
-local setclipboard = setclipboard or writeclipboard or function() 
-end
-local sethiddenproperty = sethiddenproperty or function() 
-end
-local isnetworkowner = isnetworkowner or function(part) return part:IsDescendantOf(game.Players.LocalPlayer.Character)
-end
-if not gethui then
-gethui = function() return game:GetService("CoreGui") 
-    end
-end
 print("https链接索取成功")
 if not game:IsLoaded() then game.Loaded:Wait() end
 Players = game:GetService("Players")
@@ -145,12 +130,13 @@ end
 end)()
 Pathnode = Instance.new("Folder",workspace)
 Pathnode.Name = "Path Node"
-local UIStyle = "LinoriaLib"
-local repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
+local repo
+if UIStyle == "LinoriaLib" then
+repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
+else
+repo = 'https://raw.githubusercontent.com/mstudio45/Obsidian/main/'
 end
-local getexecutorname = getexecutorname or identifyexecutor or function() return "Ronix" end
-local identifyexecutor = identifyexecutor or getexecutorname or function() return "Ronix" end
-Executor = identifyexecutor()
+Executor = identifyexecutor() or getexecutorname() or "Unknown"
 Library = loadstring(game:HttpGet(repo..'Library.lua'))()
 ThemeManager = loadstring(game:HttpGet(repo..'addons/ThemeManager.lua'))()
 SaveManager  = loadstring(game:HttpGet(repo..'addons/SaveManager.lua'))()
