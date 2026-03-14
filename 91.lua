@@ -1,3 +1,19 @@
+local getexecutorname = getexecutorname or identifyexecutor or function() return "Ronix" end
+local identifyexecutor = identifyexecutor or getexecutorname or function() return "Ronix" end
+local setclipboard = setclipboard or writeclipboard or function() end
+local sethiddenproperty = sethiddenproperty or function() end
+local isnetworkowner = isnetworkowner or function(part) return part:IsDescendantOf(game.Players.LocalPlayer.Character) end
+local gethui = gethui or function() return game:GetService("CoreGui") end
+local makefolder = makefolder or function() end
+local isfolder = isfolder or function() return false end
+local listfiles = listfiles or function() return {} end
+local readfile = readfile or function() return "" end
+local writefile = writefile or function() end
+local queue_on_teleport = queue_on_teleport or function() end
+local replicatesignal = replicatesignal or function() end
+local fireproximityprompt = fireproximityprompt or function() end
+local hookmetamethod = hookmetamethod or function() return function() end end
+local newcclosure = newcclosure or function(f) return f end
 print("https链接索取成功")
 if not game:IsLoaded() then game.Loaded:Wait() end
 Players = game:GetService("Players")
@@ -130,14 +146,32 @@ end
 end)()
 Pathnode = Instance.new("Folder",workspace)
 Pathnode.Name = "Path Node"
-local repo
-if UIStyle == "LinoriaLib" then
-repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
-else
-Executor = identifyexecutor() or getexecutorname() or "Unknown"
-Library = loadstring(game:HttpGet(repo..'Library.lua'))()
-ThemeManager = loadstring(game:HttpGet(repo..'addons/ThemeManager.lua'))()
-SaveManager  = loadstring(game:HttpGet(repo..'addons/SaveManager.lua'))()
+local UIStyle = "LinoriaLib"
+local repo = 'https://gitee.com/mirrors_code/LinoriaLib/raw/main/'
+Executor = "Ronix"
+local function safeLoad(url)
+    local success, content = pcall(function()
+        return game:HttpGet(url)
+    end)
+    if not success or content == "" then
+        error("UI库加载失败，链接无法访问: "..url)
+        return nil
+    end
+    local loadSuccess, func = pcall(loadstring, content)
+    if not loadSuccess or not func then
+        error("UI库解析失败")
+        return nil
+    end
+    return func
+end
+local libFunc = safeLoad(repo..'Library.lua')
+if not libFunc then return end
+Library = libFunc()
+local themeFunc = safeLoad(repo..'addons/ThemeManager.lua')
+if themeFunc then ThemeManager = themeFunc() end
+local saveFunc = safeLoad(repo..'addons/SaveManager.lua')
+if saveFunc then SaveManager = saveFunc() end
+
 Options = Library.Options
 Toggles = Library.Toggles
 ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
@@ -156,8 +190,10 @@ Title = '💎 Sapphire v2',
 Footer = "",
 Center = true,
 NotifySide = "Right",
-AutoShow = true
+AutoShow = false
 })
+task.wait(0.2)
+Library:show()
 if UIStyle == "LinoriaLib" then
 Tabs = {
 Homepage = Window:AddTab("主页"),
