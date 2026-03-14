@@ -130,13 +130,12 @@ end
 end)()
 Pathnode = Instance.new("Folder",workspace)
 Pathnode.Name = "Path Node"
-local repo
-if UIStyle == "LinoriaLib" then
-repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
-else
-repo = 'https://raw.githubusercontent.com/mstudio45/Obsidian/main/'
+local UIStyle = "LinoriaLib"
+local repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
 end
-Executor = identifyexecutor() or getexecutorname() or "Unknown"
+local getexecutorname = getexecutorname or identifyexecutor or function() return "Ronix" end
+local identifyexecutor = identifyexecutor or getexecutorname or function() return "Ronix" end
+Executor = identifyexecutor()
 Library = loadstring(game:HttpGet(repo..'Library.lua'))()
 ThemeManager = loadstring(game:HttpGet(repo..'addons/ThemeManager.lua'))()
 SaveManager  = loadstring(game:HttpGet(repo..'addons/SaveManager.lua'))()
