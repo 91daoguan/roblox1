@@ -134,8 +134,6 @@ local repo
 if UIStyle == "LinoriaLib" then
 repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
 else
-repo = 'https://raw.githubusercontent.com/mstudio45/Obsidian/main/'
-end
 Executor = identifyexecutor() or getexecutorname() or "Unknown"
 Library = loadstring(game:HttpGet(repo..'Library.lua'))()
 ThemeManager = loadstring(game:HttpGet(repo..'addons/ThemeManager.lua'))()
