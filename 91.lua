@@ -2,7 +2,10 @@ local getexecutorname = getexecutorname or identifyexecutor or function() return
 local identifyexecutor = identifyexecutor or getexecutorname or function() return "Ronix" end
 local setclipboard = setclipboard or writeclipboard or function() end
 local sethiddenproperty = sethiddenproperty or function() end
-local isnetworkowner = isnetworkowner or function(part) return part:IsDescendantOf(game.Players.LocalPlayer.Character) end
+local isnetworkowner = isnetworkowner or function(part) 
+    if not part then return false end
+    return part:IsDescendantOf(game:GetService("Players").LocalPlayer.Character) 
+end
 local gethui = gethui or function() return game:GetService("CoreGui") end
 local makefolder = makefolder or function() end
 local isfolder = isfolder or function() return false end
@@ -11,189 +14,239 @@ local readfile = readfile or function() return "" end
 local writefile = writefile or function() end
 local queue_on_teleport = queue_on_teleport or function() end
 local replicatesignal = replicatesignal or function() end
-local fireproximityprompt = fireproximityprompt or function() end
+local fireproximityprompt = fireproximityprompt or function(prompt) 
+    if not prompt then return end
+    prompt:InputHoldBegin()
+    task.wait(0.05)
+    prompt:InputHoldEnd()
+end
 local hookmetamethod = hookmetamethod or function() return function() end end
 local newcclosure = newcclosure or function(f) return f end
+
 print("https链接索取成功")
+local game = game
 if not game:IsLoaded() then game.Loaded:Wait() end
-Players = game:GetService("Players")
-LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
-Lighting = game:GetService("Lighting")
-local s, r = pcall(function() return game:GetService("VirtualUser") end) VirtualUser = s and r or nil
-RunService = game:GetService("RunService")
-PathfindingService = game:GetService("PathfindingService")
-ReplicatedStorage = game:GetService("ReplicatedStorage")
-ProximityPromptService = game:GetService("ProximityPromptService")
-UserInputService = game:GetService("UserInputService")
-Workspace = game:GetService("Workspace")
-SoundService = game:GetService("SoundService")
-Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local Lighting = game:GetService("Lighting")
+local s, r = pcall(function() return game:GetService("VirtualUser") end) 
+local VirtualUser = s and r or nil
+local RunService = game:GetService("RunService")
+local PathfindingService = game:GetService("PathfindingService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local SoundService = game:GetService("SoundService")
+local Debris = game:GetService("Debris")
 if LocalPlayer and LocalPlayer:GetAttribute("SapphireLoaded") then
-print("[防重复加载] 脚本已结束")
-return end
+    print("[防重复加载] 脚本已结束")
+    return 
+end
 LocalPlayer:SetAttribute("SapphireLoaded", true)
-notifysound = 4590657391
-PlayingSound = true
-promptReachMultiplier = 2.0
-Floor = ReplicatedStorage.GameData.Floor
-RemoteFolder = ReplicatedStorage:FindFirstChild("RemotesFolder")
-MainGame = LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game
-RequiredMainGame = require(LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game)
-RemoteListener = MainGame.RemoteListener
-Modules = RemoteListener.Modules
-ClientModules = game:GetService("ReplicatedStorage"):FindFirstChild("ModulesClient") or game:GetService("ReplicatedStorage"):FindFirstChild("ClientModules") 
-Modifiers = ReplicatedStorage:WaitForChild("LiveModifiers")
-Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+local notifysound = 4590657391
+local PlayingSound = true
+local promptReachMultiplier = 2.0
+local Floor = ReplicatedStorage.GameData.Floor
+local RemoteFolder = ReplicatedStorage:FindFirstChild("RemotesFolder")
+local MainGame = LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game
+local RequiredMainGame = require(LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game)
+local RemoteListener = MainGame.RemoteListener
+local Modules = RemoteListener.Modules
+local ClientModules = game:GetService("ReplicatedStorage"):FindFirstChild("ModulesClient") or game:GetService("ReplicatedStorage"):FindFirstChild("ClientModules") 
+local Modifiers = ReplicatedStorage:WaitForChild("LiveModifiers")
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
 LocalPlayer.CharacterAdded:Connect(function(char)
-Character = char
-if Toggles and Toggles.SpeedBoost and Toggles.SpeedBoost.Value then
-    local humanoid = char:WaitForChildOfClass("Humanoid")
-    humanoid.WalkSpeed = Speed
-    local speedConn = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-        if Toggles.SpeedBoost.Value and humanoid.WalkSpeed ~= Speed then
-            humanoid.WalkSpeed = Speed
-        end
-    end)
-    char:SetAttribute("SpeedBoostConn", speedConn)
-end
-if Toggles and Toggles.Noclip and Toggles.Noclip.Value then
-    task.wait(0.1)
-    local collision = char:FindFirstChild("Collision")
-    local root = char:FindFirstChild("HumanoidRootPart")
-    local collisionPart = char:FindFirstChild("CollisionPart")
-    if collision then
-        collision.CanCollide = false
-        local crouch = collision:FindFirstChild("CollisionCrouch")
-        if crouch then crouch.CanCollide = false end
+    Character = char
+    if Toggles and Toggles.SpeedBoost and Toggles.SpeedBoost.Value then
+        local humanoid = char:WaitForChildOfClass("Humanoid")
+        humanoid.WalkSpeed = Speed
+        local speedConn = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            if Toggles.SpeedBoost.Value and humanoid.WalkSpeed ~= Speed then
+                humanoid.WalkSpeed = Speed
+            end
+        end)
+        char:SetAttribute("SpeedBoostConn", speedConn)
     end
-    if root then root.CanCollide = false end
-    if collisionPart then collisionPart.CanCollide = false end
-end
-if Toggles and Toggles.AntiHear and Toggles.AntiHear.Value and RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
-    RemoteFolder.Crouch:FireServer(true)
-end
+    if Toggles and Toggles.Noclip and Toggles.Noclip.Value then
+        task.wait(0.1)
+        local collision = char:FindFirstChild("Collision")
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local collisionPart = char:FindFirstChild("CollisionPart")
+        if collision then
+            collision.CanCollide = false
+            local crouch = collision:FindFirstChild("CollisionCrouch")
+            if crouch then crouch.CanCollide = false end
+        end
+        if root then root.CanCollide = false end
+        if collisionPart then collisionPart.CanCollide = false end
+    end
+    if Toggles and Toggles.AntiHear and Toggles.AntiHear.Value and RemoteFolder and RemoteFolder:FindFirstChild("Crouch") then
+        RemoteFolder.Crouch:FireServer(true)
+    end
 end)
 
 function Sound()
-sound = Instance.new("Sound",SoundService)
-sound.Volume = 2.5
-sound.SoundId = "rbxassetid://" .. notifysound 
-sound.Playing = PlayingSound and true or false
-Debris:AddItem(sound,2)
+    local sound = Instance.new("Sound",SoundService)
+    sound.Volume = 2.5
+    sound.SoundId = "rbxassetid://" .. notifysound 
+    sound.Playing = PlayingSound and true or false
+    Debris:AddItem(sound,2)
 end
 Sound()
+
 Character = LocalPlayer.Character
 if Character.Collision:FindFirstChild("CollisionCrouch") then
-Character.Collision.CollisionCrouch.Size = Vector3.new(0.5, 0.001, 3)
+    Character.Collision.CollisionCrouch.Size = Vector3.new(0.5, 0.001, 3)
 end
 if ReplicatedStorage:FindFirstChild("RemotesFolder") then
-CollisionClone = Character.CollisionPart:Clone()
-CollisionClone.Parent = Character
-CollisionClone.Massless = true
-CollisionClone.CanCollide = false
-CollisionClone.Name = "_CollisionPart"
-if CollisionClone:FindFirstChild("CollisionCrouch") then
-CollisionClone.CollisionCrouch:Destroy()
-end
-CollisionClone2 = Character.CollisionPart:Clone()
-CollisionClone2.Parent = Character
-CollisionClone2.Massless = true
-CollisionClone2.CanCollide = false
-CollisionClone2.Name = "_CollisionPart2"
-if CollisionClone2:FindFirstChild("CollisionCrouch") then
-CollisionClone2.CollisionCrouch:Destroy()
-end
-end
-Achievement = (function()
-local Players = game:GetService("Players")
-local TS = game:GetService("TweenService")
-local Plr = Players.LocalPlayer
-return function(data)
-task.spawn(function()
-local frame = Plr.PlayerGui.GlobalUI.AchievementsHolder.Achievement:Clone()
-frame.Name = "LiveAchievement"
-frame.Frame.Details.Title.Text = data.Title
-frame.Frame.Details.Desc.Text = data.Desc
-frame.Frame.Details.Reason.Text = data.Reason
-frame.Frame.ImageLabel.Image = data.Image
-frame.Size = UDim2.new(0, 0, 0, 0)
-frame.Frame.Position = UDim2.new(1.1, 0, 0, 0)
-frame.Visible = true
-frame.Parent = Plr.PlayerGui.GlobalUI.AchievementsHolder
-if data.Text then
-frame.Frame.TextLabel.Text = data.Text
-end
-if data.TextColor then
-frame.Frame.TextLabel.TextColor3 = data.TextColor
-end
-if data.UIStrokeColor then
-frame.Frame.UIStroke.Color = data.UIStrokeColor
-end
-frame.Sound:Play()
-frame:TweenSize(UDim2.new(1, 0, 0.2, 0), "In", "Quad", 0.8, true)
-task.wait(0.8)
-frame.Frame:TweenPosition(UDim2.new(0, 0, 0, 0), "Out", "Quad", 0.5, true)
-frame.Frame.Glow.ImageColor3 = frame.Frame.UIStroke.Color
-TS:Create(frame.Frame.Glow, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { ImageTransparency = 1 }):Play()
-task.wait(3)
-frame.Frame:TweenPosition(UDim2.new(1.1, 0, 0, 0), "In", "Quad", 0.5, true)
-task.wait(0.5)
-frame:TweenSize(UDim2.new(1, 0, -0.1, 0), "InOut", "Quad", 0.5, true)
-task.wait(0.5)
-frame:Destroy()
-end)
-end
-end)()
-Pathnode = Instance.new("Folder",workspace)
-Pathnode.Name = "Path Node"
-local UIStyle = "LinoriaLib"
-local repo = 'https://gitee.com/mirrors_code/LinoriaLib/raw/main/'
-Executor = "Ronix"
-local function safeLoad(url)
-    local success, content = pcall(function()
-        return game:HttpGet(url)
-    end)
-    if not success or content == "" then
-        error("UI库加载失败，链接无法访问: "..url)
-        return nil
+    local CollisionClone = Character.CollisionPart:Clone()
+    CollisionClone.Parent = Character
+    CollisionClone.Massless = true
+    CollisionClone.CanCollide = false
+    CollisionClone.Name = "_CollisionPart"
+    if CollisionClone:FindFirstChild("CollisionCrouch") then
+        CollisionClone.CollisionCrouch:Destroy()
     end
-    local loadSuccess, func = pcall(loadstring, content)
-    if not loadSuccess or not func then
-        error("UI库解析失败")
-        return nil
+    local CollisionClone2 = Character.CollisionPart:Clone()
+    CollisionClone2.Parent = Character
+    CollisionClone2.Massless = true
+    CollisionClone2.CanCollide = false
+    CollisionClone2.Name = "_CollisionPart2"
+    if CollisionClone2:FindFirstChild("CollisionCrouch") then
+        CollisionClone2.CollisionCrouch:Destroy()
     end
-    return func
 end
-local libFunc = safeLoad(repo..'Library.lua')
-if not libFunc then return end
-Library = libFunc()
-local themeFunc = safeLoad(repo..'addons/ThemeManager.lua')
-if themeFunc then ThemeManager = themeFunc() end
-local saveFunc = safeLoad(repo..'addons/SaveManager.lua')
-if saveFunc then SaveManager = saveFunc() end
 
-Options = Library.Options
-Toggles = Library.Toggles
-ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
-ESPLibrary.GlobalConfig.Tracers = false
-ESPLibrary.GlobalConfig.Arrows = false
-if Checkbox == nil then
-Library.ForceCheckbox = true
-else
-Library.ForceCheckbox = Checkbox
+local Achievement = (function()
+    local Players = game:GetService("Players")
+    local TS = game:GetService("TweenService")
+    local Plr = Players.LocalPlayer
+    return function(data)
+        task.spawn(function()
+            local frame = Plr.PlayerGui.GlobalUI.AchievementsHolder.Achievement:Clone()
+            frame.Name = "LiveAchievement"
+            frame.Frame.Details.Title.Text = data.Title
+            frame.Frame.Details.Desc.Text = data.Desc
+            frame.Frame.Details.Reason.Text = data.Reason
+            frame.Frame.ImageLabel.Image = data.Image
+            frame.Size = UDim2.new(0, 0, 0, 0)
+            frame.Frame.Position = UDim2.new(1.1, 0, 0, 0)
+            frame.Visible = true
+            frame.Parent = Plr.PlayerGui.GlobalUI.AchievementsHolder
+            if data.Text then
+                frame.Frame.TextLabel.Text = data.Text
+            end
+            if data.TextColor then
+                frame.Frame.TextLabel.TextColor3 = data.TextColor
+            end
+            if data.UIStrokeColor then
+                frame.Frame.UIStroke.Color = data.UIStrokeColor
+            end
+            frame.Sound:Play()
+            frame:TweenSize(UDim2.new(1, 0, 0.2, 0), "In", "Quad", 0.8, true)
+            task.wait(0.8)
+            frame.Frame:TweenPosition(UDim2.new(0, 0, 0, 0), "Out", "Quad", 0.5, true)
+            frame.Frame.Glow.ImageColor3 = frame.Frame.UIStroke.Color
+            TS:Create(frame.Frame.Glow, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { ImageTransparency = 1 }):Play()
+            task.wait(3)
+            frame.Frame:TweenPosition(UDim2.new(1.1, 0, 0, 0), "In", "Quad", 0.5, true)
+            task.wait(0.5)
+            frame:TweenSize(UDim2.new(1, 0, -0.1, 0), "InOut", "Quad", 0.5, true)
+            task.wait(0.5)
+            frame:Destroy()
+        end)
+    end
+end)()
+
+local Pathnode = Instance.new("Folder",workspace)
+Pathnode.Name = "Path Node"
+
+local UIStyle = "LinoriaLib"
+local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
+local Executor = "Ronix"
+
+local function safeLoadLib(url) 
+    local loadSuccess, content = pcall(function()
+    end)
+    if not loadSuccess or content == nil or content == "" then
+        local tempNotify = Instance.new("ScreenGui")
+        tempNotify.Parent = game:GetService("CoreGui")
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(1,0,1,0)
+        textLabel.Text = "UI库加载失败！请检查网络，或更换注入器"
+        textLabel.TextColor3 = Color3.new(1,0,0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.TextSize = 20
+        textLabel.Parent = tempNotify
+        task.wait(5)
+        tempNotify:Destroy()
+        error("UI库加载失败，HttpGet返回空内容: "..url)
+        return nil
+    end
+    local parseSuccess, libFunc = pcall(loadstring, content)
+    if not parseSuccess or not libFunc then
+        error("UI库代码解析失败")
+        return nil
+    end
+    return libFunc
 end
+
+local Library = nil
+local ThemeManager = nil
+local SaveManager = nil
+local mainLibFunc = safeLoadLib(repo..'Library.lua')
+if mainLibFunc then
+    Library = mainLibFunc()
+    getgenv().Library = Library
+    getgenv().Options = Library.Options
+    getgenv().Toggles = Library.Toggles
+end
+
+local themeFunc = safeLoadLib(repo..'addons/ThemeManager.lua')
+if themeFunc then
+    ThemeManager = themeFunc()
+    getgenv().ThemeManager = ThemeManager
+end
+
+local saveFunc = safeLoadLib(repo..'addons/SaveManager.lua')
+if saveFunc then
+    SaveManager = saveFunc()
+    getgenv().SaveManager = SaveManager
+end
+
+local ESPLibrary = nil
+local espFunc = safeLoadLib("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau")
+if espFunc then
+    ESPLibrary = espFunc()
+    ESPLibrary.GlobalConfig.Tracers = false
+    ESPLibrary.GlobalConfig.Arrows = false
+    getgenv().ESPLibrary = ESPLibrary
+end
+
+if Checkbox == nil then
+    Library.ForceCheckbox = true
+else
+    Library.ForceCheckbox = Checkbox
+end
+
 Library.NotifySide = "Right"
-Connections = {}
-Library:Notify("正在加载 Sapphire v2| Doors",5)
-Window = Library:CreateWindow({
-Title = '💎 Sapphire v2',
-Footer = "",
-Center = true,
-NotifySide = "Right",
-AutoShow = false
+local Connections = {}
+Library:Notify("正在加载 Sapphire v2 | Doors",5)
+
+local Window = Library:CreateWindow({
+    Title = '💎 Sapphire v2',
+    Footer = "",
+    Center = true,
+    NotifySide = "Right",
+    AutoShow = false -- 先关闭自动显示，后面强制显示
 })
+-- 延迟0.2秒强制显示UI，确保初始化完成
 task.wait(0.2)
-Library:show()
+Library:Show()
+Library:Notify("UI加载成功！按右Shift呼出菜单", 3)
 if UIStyle == "LinoriaLib" then
 Tabs = {
 Homepage = Window:AddTab("主页"),
