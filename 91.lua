@@ -1,4 +1,3 @@
-print("https链接索取成功")
 Players = game:GetService("Players")
 LocalPlayer = Players.LocalPlayer
 Lighting = game:GetService("Lighting")
@@ -11,7 +10,6 @@ UserInputService = game:GetService("UserInputService")
 Workspace = game:GetService("Workspace")
 SoundService = game:GetService("SoundService")
 Debris = game:GetService("Debris")
-
 if LocalPlayer:GetAttribute("SapphireLoaded") then 
 print("[防重复加载] 脚本已结束")
 return
