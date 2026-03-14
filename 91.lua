@@ -132,7 +132,7 @@ Pathnode = Instance.new("Folder",workspace)
 Pathnode.Name = "Path Node"
 local repo
 if UIStyle == "LinoriaLib" then
-repo = ' https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/Library.lua'
+repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
 else
 Executor = identifyexecutor() or getexecutorname() or "Unknown"
 Library = loadstring(game:HttpGet(repo..'Library.lua'))()
@@ -140,7 +140,7 @@ ThemeManager = loadstring(game:HttpGet(repo..'addons/ThemeManager.lua'))()
 SaveManager  = loadstring(game:HttpGet(repo..'addons/SaveManager.lua'))()
 Options = Library.Options
 Toggles = Library.Toggles
-ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/main/source.luau"))()
+ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
 ESPLibrary.GlobalConfig.Tracers = false
 ESPLibrary.GlobalConfig.Arrows = false
 if Checkbox == nil then
