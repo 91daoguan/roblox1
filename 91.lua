@@ -1,3 +1,12 @@
+
+local getexecutorname = getexecutorname or identifyexecutor or function() return "Ronix" end
+local identifyexecutor = identifyexecutor or getexecutorname or function() return "Ronix" end
+local setclipboard = setclipboard or writeclipboard or function() end
+local sethiddenproperty = sethiddenproperty or function() end
+local isnetworkowner = isnetworkowner or function(part) return part:IsDescendantOf(game.Players.LocalPlayer.Character) end
+if not gethui then
+gethui = function() return game:GetService("CoreGui") end
+end
 print("https链接索取成功")
 if not game:IsLoaded() then game.Loaded:Wait() end
 Players = game:GetService("Players")
