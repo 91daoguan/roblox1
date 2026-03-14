@@ -132,7 +132,7 @@ Pathnode = Instance.new("Folder",workspace)
 Pathnode.Name = "Path Node"
 local repo
 if UIStyle == "LinoriaLib" then
-repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/Library.lua'
+repo = ' https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/Library.lua'
 else
 Executor = identifyexecutor() or getexecutorname() or "Unknown"
 Library = loadstring(game:HttpGet(repo..'Library.lua'))()
@@ -300,7 +300,7 @@ Movement:AddSlider("SpeedBoostSlider", {
     Text = "移动速度值",
     Default = 15,
     Min = 15,
-    Max = 23,
+    Max = 21,
     Rounding = 1,
 Callback = function(Value)
 Speed = Value
