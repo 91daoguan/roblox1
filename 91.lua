@@ -37,8 +37,26 @@ Modifiers = ReplicatedStorage:WaitForChild("LiveModifiers")
 Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
 LocalPlayer.CharacterAdded:Connect(function(char)
-Character = char
+    Character = char
 
+    -- 重新设置碰撞状态
+    if Toggles.Noclip and Toggles.Noclip.Value then
+        setCollision(char, false)
+    end
+
+    if Toggles.Noacceleration and Toggles.Noacceleration.Value then
+        setPhysicsProps(char, 100, 0.5, 0.2)
+    end
+
+    if jumpPowerConnections then
+        for _, v in pairs(jumpPowerConnections) do if v then v:Disconnect() end end
+        jumpPowerConnections = {}
+    end
+    applyJumpPower()
+
+    if Toggles.Players and Toggles.Players.Value then
+        AddPlayerESP(LocalPlayer, char, PlayersColor)
+    end
 end)
 
 function Sound()
@@ -282,33 +300,37 @@ end
 
 Info:AddLabel("[<font color=\"rgb(73,230,133)\"</font>] LEAKER")
 
+OriginalWalkSpeed = 16
+if Character and Character:FindFirstChild("Humanoid") then
+    OriginalWalkSpeed = Character.Humanoid.WalkSpeed
+end
+
 Movement:AddToggle('SpeedBoost', {
     Text = "移动速度",
     Default = false,
-Callback = function(Value)
-if Character and Character.Humanoid then
-if Value then
-Character.Humanoid.WalkSpeed = Speed
-else
-Character.Humanoid.WalkSpeed = 16
-end
-end
-end
+    Callback = function(Value)
+        if Character and Character:FindFirstChild("Humanoid") then
+            if Value then
+                Character.Humanoid.WalkSpeed = Speed
+            else
+                Character.Humanoid.WalkSpeed = OriginalWalkSpeed or 16
+            end
+        end
+    end
 })
 
-Speed = 15
 Movement:AddSlider("SpeedBoostSlider", {
     Text = "移动速度值",
     Default = 15,
     Min = 15,
     Max = 21,
     Rounding = 1,
-Callback = function(Value)
-Speed = Value
-if Toggles.SpeedBoost.Value and Character and Character.Humanoid then
-Character.Humanoid.WalkSpeed = Speed
-end
-end,      
+    Callback = function(Value)
+        Speed = Value
+        if Toggles.SpeedBoost and Toggles.SpeedBoost.Value and Character and Character:FindFirstChild("Humanoid") then
+            Character.Humanoid.WalkSpeed = Speed
+        end
+    end,      
 })
 
 LadderSpeedSlider = Movement:AddSlider("LadderSpeedBoost", {
@@ -336,7 +358,15 @@ if Floor:IsA("StringValue") then
 table.insert(Connections, Floor.Changed:Connect(updateLadderSpeedSlider))
 end
 updateLadderSpeedSlider()
-
+Movement:AddToggle('EnableSlide', {
+    Text = "启用滑铲",
+    Default = false
+})
+Toggles.EnableSlide:OnChanged(function(Value)
+    if Value and Character and Character:FindFirstChild("Humanoid") then
+        Character.Humanoid:Move(Vector3.new(1,0,1), true)
+    end
+end)
 Movement:AddToggle('EnableJump', {
     Text = "启用跳跃",
     Default = false
@@ -432,11 +462,34 @@ end
 end))
 
 
+function setPhysicsProps(char, mass, friction, elasticity)
+    local humroot = char:FindFirstChild("HumanoidRootPart")
+    if humroot then
+        pcall(function()
+            humroot.CustomPhysicalProperties = PhysicalProperties.new(mass, friction, elasticity)
+        end)
+    end
+    local coll = char:FindFirstChild("Collision")
+    if coll then
+        pcall(function()
+            coll.CustomPhysicalProperties = PhysicalProperties.new(mass, friction, elasticity)
+        end)
+    end
+end
+
 Movement:AddToggle('Noacceleration', {
     Text = "无加速度",
-    Default = false
+    Default = false,
+    Callback = function(Value)
+        if LocalPlayer and LocalPlayer.Character then
+            if Value then
+                setPhysicsProps(LocalPlayer.Character, 100, 0.5, 0.2)
+            else
+                setPhysicsProps(LocalPlayer.Character, 0.4, 0.2, 0.2)
+            end
+        end
+    end
 })
-Movement:AddDivider()
 
 Movement:AddToggle('InstantPrompt', {
     Text = "快速互动",
@@ -488,17 +541,25 @@ Movement:AddToggle('Noclip', {
     SyncToggleState = true,
     ChangedCallback = function(New) end
 })
+function setCollision(char, flag)
+    pcall(function()
+        local collision = char:FindFirstChild("Collision") or char:FindFirstChild("PlayerCollision")
+        if collision then
+            collision.CanCollide = flag
+            local crouch = collision:FindFirstChild("CollisionCrouch")
+            if crouch then crouch.CanCollide = flag end
+        end
+        local humroot = char:FindFirstChild("HumanoidRootPart")
+        if humroot then humroot.CanCollide = flag end
+        local part = char:FindFirstChild("CollisionPart")
+        if part then part.CanCollide = flag end
+    end)
+end
+
 Toggles.Noclip:OnChanged(function(Value)
-if not Value then 
-LocalPlayer.Character.Collision.CanCollide = true 
-if Character.Collision:FindFirstChild("CollisionCrouch") then
-LocalPlayer.Character.Collision.CollisionCrouch.CanCollide = true
-end
-LocalPlayer.Character.HumanoidRootPart.CanCollide = true
-if LocalPlayer.Character:FindFirstChild("CollisionPart") then
-LocalPlayer.Character:FindFirstChild("CollisionPart").CanCollide = true
-end
-end
+    if LocalPlayer and LocalPlayer.Character then
+        setCollision(LocalPlayer.Character, not Value)
+    end
 end)
 
 Fly = Fly or {}
@@ -750,6 +811,11 @@ Automation:AddToggle('AutoCodeFire', {
     Default = false,
     Tooltip = "在有效范围内自动解锁挂锁",
 Callback = function(on)
+   Automation:AddToggle('BruteForcePadlock', {
+    Text = "暴力破解挂锁（密码剩2位爆破）",
+    Default = false,
+    Tooltip = "勾选后，当挂锁纸条只剩最后两位时，将自动在5秒内爆破所有组合，不影响正常自动挂锁"
+})         
 if on then
 if not game:GetService("ReplicatedStorage"):FindFirstChild("RemotesFolder") then
 Library:Notify("未找到远程事件文件夹", 3)
@@ -4114,6 +4180,26 @@ local function handleCode(paper)
 local hints = LocalPlayer.PlayerGui:FindFirstChild("PermUI") and 
 LocalPlayer.PlayerGui.PermUI:FindFirstChild("Hints")
 local code = parsePaper(paper, hints)
+if Toggles.BruteForcePadlock and Toggles.BruteForcePadlock.Value then
+    local TOTAL_LEN = 5
+    if #code == TOTAL_LEN - 2 then
+        local startTick = tick()
+        local lastKnown = code
+        for d1 = 0, 9 do
+            for d2 = 0, 9 do
+                if tick() - startTick > 5 then return end -- 5 秒安全限时
+                local bruteCode = lastKnown .. tostring(d1) .. tostring(d2)
+                task.spawn(function()
+                    pcall(function()
+                        if PL then PL:FireServer(bruteCode) end
+                    end)
+                end)
+                task.wait(0.03)
+            end
+        end
+    end
+end
+-- =========暴力爆破新代码结束=========
 if lastCodes[paper] ~= code and code ~= "" then
 lastCodes[paper] = code
 Library:Notify("挂锁密码是 "..code, 3)
