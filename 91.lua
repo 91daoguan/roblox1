@@ -810,12 +810,17 @@ Automation:AddToggle('AutoCodeFire', {
     Text = "自动解挂锁",
     Default = false,
     Tooltip = "在有效范围内自动解锁挂锁",
-Callback = function(on)
-   Automation:AddToggle('BruteForcePadlock', {
+    Callback = function(on)
+        if on then
+        end
+    end
+})
+
+Automation:AddToggle('BruteForcePadlock', {
     Text = "暴力破解挂锁（密码剩2位爆破）",
     Default = false,
     Tooltip = "勾选后，当挂锁纸条只剩最后两位时，将自动在5秒内爆破所有组合，不影响正常自动挂锁"
-})         
+})
 if on then
 if not game:GetService("ReplicatedStorage"):FindFirstChild("RemotesFolder") then
 Library:Notify("未找到远程事件文件夹", 3)
@@ -4180,27 +4185,52 @@ local function handleCode(paper)
 local hints = LocalPlayer.PlayerGui:FindFirstChild("PermUI") and 
 LocalPlayer.PlayerGui.PermUI:FindFirstChild("Hints")
 local code = parsePaper(paper, hints)
-if Toggles.BruteForcePadlock and Toggles.BruteForcePadlock.Value then
-    local TOTAL_LEN = 5
-    if #code == TOTAL_LEN - 2 then
-        local startTick = tick()
-        local lastKnown = code
-        for d1 = 0, 9 do
-            for d2 = 0, 9 do
-                if tick() - startTick > 5 then return end -- 5 秒安全限时
-                local bruteCode = lastKnown .. tostring(d1) .. tostring(d2)
-                task.spawn(function()
-                    pcall(function()
-                        if PL then PL:FireServer(bruteCode) end
+if lastCodes[paper] ~= code and code ~= "" then
+local function handleCode(paper)
+    local hints = LocalPlayer.PlayerGui:FindFirstChild("PermUI") and 
+        LocalPlayer.PlayerGui.PermUI:FindFirstChild("Hints")
+    local code = parsePaper(paper, hints)
+    if lastCodes[paper] ~= code and code ~= "" then
+        lastCodes[paper] = code
+        if padPart and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (LocalPlayer.Character.HumanoidRootPart.Position - padPart.Position).Magnitude
+            if dist <= UnlockDistance then
+                local now = tick()
+                if not lastFireTimes[code] or now - lastFireTimes[code] > 1 then
+                    local ok = pcall(function() 
+                        if PL then 
+                            PL:FireServer(code) 
+                        end
                     end)
-                end)
-                task.wait(0.03)
+                    if ok then 
+                        lastFireTimes[code] = now 
+                    end
+                end
+            end
+        end
+    end
+
+    -- **暴力破解部分(必须在handleCode的最后这边加):**
+    if Toggles.BruteForcePadlock and Toggles.BruteForcePadlock.Value and PL then
+        local TOTAL_LEN = 5 -- 挂锁密码总位数，不对就改成你实际的
+        if #code == TOTAL_LEN - 2 then
+            local startTick = tick()
+            local lastKnown = code
+            for d1 = 0, 9 do
+                for d2 = 0, 9 do
+                    if tick() - startTick > 5 then return end -- 安全限时
+                    local bruteCode = lastKnown .. tostring(d1) .. tostring(d2)
+                    task.spawn(function()
+                        pcall(function()
+                            PL:FireServer(bruteCode)
+                        end)
+                    end)
+                    task.wait(0.03)
+                end
             end
         end
     end
 end
--- =========暴力爆破新代码结束=========
-if lastCodes[paper] ~= code and code ~= "" then
 lastCodes[paper] = code
 Library:Notify("挂锁密码是 "..code, 3)
 end
